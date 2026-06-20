@@ -13,7 +13,7 @@ type slogCtx struct {
 	keys []CtxKey
 }
 
-func NewSlogCtxLogSink(l LogLevel) LogSink {
+func NewSlogCtx(l LogLevel) *slogCtx {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.Level(l),
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
@@ -39,9 +39,10 @@ func NewSlogCtxLogSink(l LogLevel) LogSink {
 	return &slogCtx{Logger: logger}
 }
 
-func (l *slogCtx) With(args ...any) LogSink {
+func (l *slogCtx) With(args ...any) *slogCtx {
 	return &slogCtx{
 		Logger: l.Logger.With(args...),
+		keys:   l.keys,
 	}
 }
 func (l *slogCtx) Log(ctx context.Context, lvl LogLevel, msg string, args ...any) {
@@ -59,7 +60,7 @@ func (l *slogCtx) WithCtxKeys(args ...CtxKey) *slogCtx {
 	}
 	totalLength := len(l.keys) + lenArgs
 	newKeys := make([]CtxKey, 0, totalLength)
-	seen := make(map[CtxKey]struct{})
+	seen := make(map[CtxKey]struct{}, totalLength)
 	for _, v := range l.keys {
 		if _, ok := seen[v]; ok {
 			continue
