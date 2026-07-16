@@ -84,6 +84,7 @@ func (l *SlogCtx) With(args ...any) *SlogCtx {
 		keys:   l.keys,
 	}
 }
+
 func (l *SlogCtx) Log(ctx context.Context, lvl LogLevel, msg string, args ...any) {
 	l.logger.Log(ctx, slog.Level(lvl), msg, l.appendCtx(ctx, args)...)
 }
@@ -93,11 +94,10 @@ func (l *SlogCtx) Enabled(ctx context.Context, lvl LogLevel) bool {
 }
 
 func (l *SlogCtx) WithCtxKeys(args ...CtxKey) *SlogCtx {
-	lenArgs := len(args)
-	if lenArgs < 1 {
+	if len(args) < 1 {
 		return l
 	}
-	totalLength := len(l.keys) + lenArgs
+	totalLength := len(l.keys) + len(args)
 	newKeys := make([]CtxKey, 0, totalLength)
 	seen := make(map[CtxKey]struct{}, totalLength)
 	for _, v := range l.keys {
@@ -125,6 +125,11 @@ func (l *SlogCtx) appendCtx(ctx context.Context, args []any) []any {
 	if len(l.keys) == 0 {
 		return args
 	}
+	// this is so loggers that don't track ctx keys can inline the len0 check without seeing the slowpath
+	return l.appendCtxSlow(ctx, args)
+}
+
+func (l *SlogCtx) appendCtxSlow(ctx context.Context, args []any) []any {
 	for _, key := range l.keys {
 		if inCtx := ctx.Value(key); inCtx != nil {
 			args = append(args, string(key), inCtx)

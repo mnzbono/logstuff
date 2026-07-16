@@ -27,19 +27,29 @@ const (
 	LevelError LogLevel = 8
 )
 
+const (
+	levelBase = LevelTrace
+	levelStep = 4
+)
+
+var levelNames = [...]string{
+	"TRACE",
+	"DEBUG",
+	"INFO",
+	"WARN",
+	"ERROR",
+}
+
 func (l LogLevel) String() string {
-	switch l {
-	case LevelTrace:
-		return "TRACE"
-	case LevelDebug:
-		return "DEBUG"
-	case LevelInfo:
-		return "INFO"
-	case LevelWarn:
-		return "WARN"
-	case LevelError:
-		return "ERROR"
-	default:
-		return "UNKNOWNLOGLVL<" + strconv.Itoa(int(l)) + ">"
+	// a little ugly but inlines
+	n := uint((l - levelBase) / levelStep)
+	if n < uint(len(levelNames)) {
+		return levelNames[n]
 	}
+	return l.string()
+}
+
+//go:noinline
+func (l LogLevel) string() string {
+	return "LVL<" + strconv.Itoa(int(l)) + ">"
 }
