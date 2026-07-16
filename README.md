@@ -1,5 +1,5 @@
 [![tests/vet](https://github.com/mnzbono/logstuff/actions/workflows/CI.yml/badge.svg)](https://github.com/mnzbono/logstuff/actions/workflows/CI.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/mnzbono/logstuff/blob/master/LICENSE)
 [![Go Reference](https://pkg.go.dev/badge/github.com/mnzbono/logstuff.svg)](https://pkg.go.dev/github.com/mnzbono/logstuff)
 
 # logstuff
@@ -9,7 +9,7 @@ A few small logging abstractions I use across my own Go projects:
 - a slog wrapper with context-key propagation and trace level, 
 - and a couple of optional capability interfaces (LevelEnabler, CtxKeyer).
 
-## LogSink
+## [LogSink](https://github.com/mnzbono/logstuff/blob/master/logsink.go)
 `LogSink` is a minimal logger interface. It only has two methods, `Log` and `With`, and uses exported `LogLevel` constants for the level argument. This keeps call sites light and behind interface, making it easy to modify logger setup without touching call sites.
 
 ```go
@@ -26,24 +26,24 @@ This started as a direct slog dependency, then got refactored into a custom logg
 LogSink exists so call sites depend on a two-method shape, not a specific implementation, so a future swap (by me, or by anyone forking/collaborating who already has their own logging setup) doesn't mean touching every call site again.
 
 ## A few more things in this package, just convenience stuff:
-- `SlogCtx`
+- [`SlogCtx`](https://github.com/mnzbono/logstuff/blob/master/slogctx.go)
     - It's a `slog` wrapper that adds context keys (useful for request-id, traces or similar).
     - It also adds `trace` level.
-- `slogSink`
+- [`slogSink`](https://github.com/mnzbono/logstuff/blob/master/slogsink.go)
     - It's just a ready-made `SlogCtx` wrapper that satisfies the LogSink interface.
-- `Logger`
+- [`Logger`](https://github.com/mnzbono/logstuff/blob/master/logger.go)
     - LogSink wrapper.
     - Provides all the convenience methods on top of a LogSink, `Debug`, `Info`, `Error`, etc.
     - It can be used with any LogSink but it doesn't satisfy LogSink interface itself.
-- `discardSink`
+- [`discardSink`](https://github.com/mnzbono/logstuff/blob/master/discard.go)
     - is just a ready-made implementation of a discard logger (a logger that doesn't do anything) that satisfies the LogSink interface.
-- `LevelFromEnv`
+- [`LevelFromEnv`](https://github.com/mnzbono/logstuff/blob/master/fromenv.go)
     - Package function for reading log level from env, returns directly a `logstuff.LogLevel`.
 
 Building-block interfaces:
-- `CtxKeyer`
+- [`CtxKeyer`](https://github.com/mnzbono/logstuff/blob/master/ctxkeyer.go)
     - minimal interface to add ctx keys for the logger to track. `WithCtxKeys` method.
-- `LevelEnabler`
+- [`LevelEnabler`](https://github.com/mnzbono/logstuff/blob/master/levelenabler.go)
     - minimal interface to add finer control over what's logged. `Enabled` method.
 
 ## Install
