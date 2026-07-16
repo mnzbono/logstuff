@@ -1,4 +1,4 @@
-[![tests/vet](https://github.com/mnzbono/logstuff/actions/workflows/ci.yml/badge.svg)](https://github.com/mnzbono/logstuff/actions/workflows/ci.yml)
+[![tests/vet](https://github.com/mnzbono/logstuff/actions/workflows/CI.yml/badge.svg)](https://github.com/mnzbono/logstuff/actions/workflows/CI.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Reference](https://pkg.go.dev/badge/github.com/mnzbono/logstuff.svg)](https://pkg.go.dev/github.com/mnzbono/logstuff)
 
