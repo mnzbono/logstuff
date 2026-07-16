@@ -2,6 +2,7 @@ package logstuff
 
 import "context"
 
-type levelEnabler interface {
+// LevelEnabler is a minimal interface to gate logging behind a conditional.
+type LevelEnabler interface {
 	Enabled(context.Context, LogLevel) bool
 }

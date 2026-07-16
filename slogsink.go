@@ -1,26 +1,32 @@
 package logstuff
 
-import (
-	"context"
-	"log/slog"
-)
-
+// slogSink is a wrapper around SlogCtx that satisfies LogSink interface.
 type slogSink struct {
-	*slogCtx
+	*SlogCtx
 }
 
-func NewSlogSink(l LogLevel) LogSink {
-	return &slogSink{NewSlogCtx(l)}
+// NewSlogSink returns a wrapper around SlogCtx that satisfies LogSink interface.
+func NewSlogSink(l LogLevel, opts ...SlogHandler) LogSink {
+	return &slogSink{NewSlogCtx(l, opts...)}
 }
+
+// --- LogSink interface
+
+// Log() is promoted from SlogCtx embedding and already satisfies LogSink.
 
 func (l *slogSink) With(args ...any) LogSink {
 	return &slogSink{
-		&slogCtx{
-			Logger: l.Logger.With(args...),
-			keys:   l.keys,
-		},
+		l.SlogCtx.With(args...)}
+}
+
+// --- optional interfaces
+
+func (l *slogSink) WithCtxKeys(keys ...CtxKey) LogSink {
+	if len(keys) == 0 {
+		return l
 	}
+	return &slogSink{
+		l.SlogCtx.WithCtxKeys(keys...)}
 }
-func (l *slogSink) Log(ctx context.Context, lvl LogLevel, msg string, args ...any) {
-	l.Logger.Log(ctx, slog.Level(lvl), msg, l.appendCtx(ctx, args)...)
-}
+
+// Enabled() is promoted from SlogCtx embedding and already satisfies LogSink.

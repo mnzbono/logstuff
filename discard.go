@@ -4,6 +4,7 @@ import "context"
 
 type discardSink struct{}
 
+// NewDiscard returns discardSink, a logger that does nothing and satisfies LogSink interface.
 func NewDiscard() LogSink { return discardSink{} }
 
 func (discardSink) With(...any) LogSink                           { return discardSink{} }

@@ -4,10 +4,12 @@ import (
 	"context"
 )
 
+// Logger is a LogSink wrapper that provides all expected convenience methods.
 type Logger struct {
 	sink LogSink
 }
 
+// NewLogger returns a *Logger
 func NewLogger(l LogSink) *Logger {
 	return &Logger{sink: l}
 }
@@ -22,7 +24,7 @@ func (l *Logger) Log(ctx context.Context, lvl LogLevel, msg string, args ...any)
 }
 
 func (l *Logger) Enabled(ctx context.Context, lvl LogLevel) bool {
-	if e, ok := l.sink.(levelEnabler); ok {
+	if e, ok := l.sink.(LevelEnabler); ok {
 		return e.Enabled(ctx, lvl)
 	}
 	return true // sink doesn't support checking, assume enabled

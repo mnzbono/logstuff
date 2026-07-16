@@ -2,58 +2,97 @@ package logstuff
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"os"
 )
 
+// CtxKey is the type of context keys that SlogCtx can track.
 type CtxKey string
 
-type slogCtx struct {
-	*slog.Logger
-	keys []CtxKey
+// SlogCtx is a wrapper around slog.Logger that adds support for context keys.
+type SlogCtx struct {
+	logger *slog.Logger // slog.Logger private so its methods aren't promoted (breaks the ctx thing)
+	keys   []CtxKey
 }
 
-func NewSlogCtx(l LogLevel) *slogCtx {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.Level(l),
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			if a.Key == slog.LevelKey {
-				level := a.Value.Any().(slog.Level)
+// SlogHandler builds a slog.Handler from the given options.
+type SlogHandler func(*slog.HandlerOptions) slog.Handler
 
-				switch LogLevel(level) {
-				case LevelTrace:
-					a.Value = slog.StringValue("TRACE")
-				case LevelDebug:
-					a.Value = slog.StringValue("DEBUG")
-				case LevelInfo:
-					a.Value = slog.StringValue("INFO")
-				case LevelWarn:
-					a.Value = slog.StringValue("WARN")
-				case LevelError:
-					a.Value = slog.StringValue("ERROR")
-				}
-			}
-			return a
-		},
-	}))
-	return &slogCtx{Logger: logger}
+// WithJSONHandler creates a JSON slog.Handler. If logLevel is passed it overwrites the base logLevel of constructor.
+func WithJSONHandler(w io.Writer, logLevel ...LogLevel) SlogHandler {
+	return func(opts *slog.HandlerOptions) slog.Handler {
+		myOpts := *opts
+		if len(logLevel) > 0 {
+			myOpts.Level = slog.Level(logLevel[0])
+		}
+		return slog.NewJSONHandler(w, &myOpts)
+	}
 }
 
-func (l *slogCtx) With(args ...any) *slogCtx {
-	return &slogCtx{
-		Logger: l.Logger.With(args...),
+// WithTextHandler creates a TEXT slog.Handler. If logLevel is passed it overwrites the base logLevel of constructor.
+func WithTextHandler(w io.Writer, logLevel ...LogLevel) SlogHandler {
+	return func(opts *slog.HandlerOptions) slog.Handler {
+		myOpts := *opts
+		if len(logLevel) > 0 {
+			myOpts.Level = slog.Level(logLevel[0])
+		}
+		return slog.NewTextHandler(w, &myOpts)
+	}
+}
+
+// WithHandler allows to passing directly a pre-built slog.Handler.
+// NOTE: Handlers passed in WithHandler won't do ReplaceAttr (trace level).
+func WithHandler(h slog.Handler) SlogHandler {
+	return func(opts *slog.HandlerOptions) slog.Handler { return h }
+}
+
+// NewSlogCtx returns a *SlogCtx. variadic SlogHandler allows to pass 0, 1 or more build options.
+//   - If no SlogHandler is passed, the default TEXT slog.Handler that outputs to stdout will be used.
+//   - If more than one is passed, then a slog.Multihandler will be created.
+func NewSlogCtx(l LogLevel, opts ...SlogHandler) *SlogCtx {
+	var h slog.Handler
+	handlerOpts := &slog.HandlerOptions{Level: slog.Level(l), ReplaceAttr: replaceLevelAttr}
+	switch len(opts) {
+	case 0:
+		h = slog.NewTextHandler(os.Stdout, handlerOpts)
+	case 1:
+		h = opts[0](handlerOpts)
+	default:
+		handlers := make([]slog.Handler, 0, len(opts))
+		for _, v := range opts {
+			handlers = append(handlers, v(handlerOpts))
+		}
+		h = slog.NewMultiHandler(handlers...)
+	}
+	return &SlogCtx{logger: slog.New(h)}
+}
+
+func replaceLevelAttr(groups []string, a slog.Attr) slog.Attr {
+	if a.Key == slog.LevelKey {
+		level := a.Value.Any().(slog.Level)
+		a.Value = slog.StringValue(
+			LogLevel(level).String(),
+		)
+	}
+	return a
+}
+
+func (l *SlogCtx) With(args ...any) *SlogCtx {
+	return &SlogCtx{
+		logger: l.logger.With(args...),
 		keys:   l.keys,
 	}
 }
-func (l *slogCtx) Log(ctx context.Context, lvl LogLevel, msg string, args ...any) {
-	l.Logger.Log(ctx, slog.Level(lvl), msg, l.appendCtx(ctx, args)...)
+func (l *SlogCtx) Log(ctx context.Context, lvl LogLevel, msg string, args ...any) {
+	l.logger.Log(ctx, slog.Level(lvl), msg, l.appendCtx(ctx, args)...)
 }
 
-func (l *slogCtx) Enabled(ctx context.Context, lvl LogLevel) bool {
-	return l.Logger.Enabled(ctx, slog.Level(lvl))
+func (l *SlogCtx) Enabled(ctx context.Context, lvl LogLevel) bool {
+	return l.logger.Enabled(ctx, slog.Level(lvl))
 }
 
-func (l *slogCtx) WithCtxKeys(args ...CtxKey) *slogCtx {
+func (l *SlogCtx) WithCtxKeys(args ...CtxKey) *SlogCtx {
 	lenArgs := len(args)
 	if lenArgs < 1 {
 		return l
@@ -75,13 +114,14 @@ func (l *slogCtx) WithCtxKeys(args ...CtxKey) *slogCtx {
 		newKeys = append(newKeys, v)
 		seen[v] = struct{}{}
 	}
-	return &slogCtx{
-		Logger: l.Logger,
+	return &SlogCtx{
+		logger: l.logger,
 		keys:   newKeys,
 	}
 }
 
-func (l *slogCtx) appendCtx(ctx context.Context, args []any) []any {
+// appendCtx looks for tracked CtxKeys and adds them to the logger args.
+func (l *SlogCtx) appendCtx(ctx context.Context, args []any) []any {
 	if len(l.keys) == 0 {
 		return args
 	}

@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-// "LOGLEVEL"
+// EnvLogLevel defines the env var to use when setting log level, default "LOGLEVEL"
 var EnvLogLevel = "LOGLEVEL"
 
-// reads var EnvLogLevel, default "LOGLEVEL"
+// LevelFromEnv reads log level form env. Reads exported var EnvLogLevel value, default "LOGLEVEL"
 func LevelFromEnv() LogLevel {
 	envlevel := strings.ToLower(strings.TrimSpace(os.Getenv(EnvLogLevel)))
 	switch envlevel {
